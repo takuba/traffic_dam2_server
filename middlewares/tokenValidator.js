@@ -9,8 +9,8 @@ module.exports = function (req, res, next) {
          res.sendFile(path.join(__dirname+'/pantallaSeguridad.html'));
        }else{
          //res.send("NO entro")
-         const token = req.headers.authorization;
-
+         const token = req.headers.authorization.split('Bearer ')[1];
+         //console.log(token);
          if (!token) {
            return res.status(401).json({ error: 'Unauthorized: Token not provided' });
          }
@@ -19,6 +19,7 @@ module.exports = function (req, res, next) {
        
          try {
            const decoded = jwt.verify(token, secretKey);
+           console.log(decoded);
            req.user = decoded.user;
            next();
          } catch (error) {

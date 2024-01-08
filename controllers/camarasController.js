@@ -15,9 +15,9 @@ exports.getAllCamaras = (req, res2) => {
           if (error) {
             return res2.status(500).json({ error: 'Internal Server Error' });
           }
-          console.log(token);
+          //console.log(token);
           const token = generateToken(camaras);
-          res2.json({ users, token });
+          res2.json({ camaras, token });
           //res2.status(200).send(res.json(camaras));
         });
     
