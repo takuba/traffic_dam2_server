@@ -20,34 +20,45 @@ function validatePassword(password) {
 }
 
 exports.register = (req, res) => {
-  const {email, password } = req.body;
+  const { email, password } = req.body;
 
-  // Validar el correo electrónico antes de continuar
-  if (!validator.isEmail(email)) {
-    return res.status(400).json({ error: 'Correo electrónico no válido' });
-  }
-
-  // Validar la contraseña antes de continuar
-  const passwordError = validatePassword(password);
-  if (passwordError) {
-    return res.status(400).json({ error: passwordError });
-  }
-
-  const newUser = {
-    email: email,
-    password: password,
-  };
-
-  userModel.createUser(newUser, (error, results) => {
-   // console.log(results);
+  // Validar si ese correo ya existe
+  userModel.getUserByEmail(email, (error, user) => {
     if (error) {
       return res.status(500).json({ error: 'Internal Server Error' });
     }
+    if (user) {
+      return res.status(409).json({ error: 'Ese correo ya existe' });
+    }
 
-    const token = generateToken(newUser);
-    res.json({ user: newUser, token });
+    // Validar el correo electrónico antes de continuar
+    if (!validator.isEmail(email)) {
+      return res.status(400).json({ error: 'Correo electrónico no válido' });
+    }
+
+    // Validar la contraseña antes de continuar
+    const passwordError = validatePassword(password);
+    if (passwordError) {
+      return res.status(400).json({ error: passwordError });
+    }
+
+    const newUser = {
+      email: email,
+      password: password,
+    };
+
+    userModel.createUser(newUser, (error, results) => {
+      // console.log(results);
+      if (error) {
+        return res.status(500).json({ error: 'Internal Server Error' });
+      }
+
+      const token = generateToken(newUser);
+      res.json({ user: newUser, token });
+    });
   });
 };
+
 
 exports.login = (req, res) => {
   const { email, password } = req.body;
