@@ -14,9 +14,9 @@ const cameraDbModel = {
       throw error;
     }
   }, 
-  getAllDbCamerasById: async (id) => {
+  getAllDbCamerasBySourceId: async (id) => {
     try {
-      const query = 'SELECT cameraId, cameraName, urlImage, latitude, longitude, sourceId FROM camaras WHERE cameraId = ?';
+      const query = 'SELECT cameraId, cameraName, urlImage, latitude, longitude, sourceId FROM camaras WHERE sourceId = ?';
       const [results] = await connection.promise().query(query, [id]);
       return results;
     } catch (error) {
@@ -92,24 +92,71 @@ const cameraApiModel = {
 //This method is to get all cameras from DB and Api together
 const camaraFullModel = {
 
-  getAllCameras: async () => {
+  getAllCameras: async (page) => {
     try {
-      const apiData = await cameraApiModel.getAllApiCameras(1);
+      const apiData = await cameraApiModel.getAllApiCameras(page);
       const dbData = await cameraDbModel.getAllDbCameras();
 
       //camera numbers in the db
       const itemLength = dbData.length;
+      apiData.totalItems+=itemLength;
       //mixed api and db data
       const mixedCameras = dbData.concat(apiData.cameras);
 
       const mixedResult = {
-        totalItems: apiData.totalItems+itemLength,
+        totalItems: apiData.totalItems,
         totalPages: apiData.totalPages,
         currentPage: apiData.currentPage,
-        camerasAPI: mixedCameras,
+        cameras: mixedCameras,
       };
+      const result = page == 1 ? mixedResult : apiData;
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  },
+  getAllCamerasByLocation: async (latitude, longitude, radius, page) => {
+    try {
+      const apiData = await cameraApiModel.getAllApiCamerasByLocation(latitude, longitude, radius, page);
+      const dbData = await cameraDbModel.getAllDbCamerasByLocation(latitude,longitude);
 
-      return mixedResult;
+      //camera numbers in the db
+      const itemLength = dbData.length;
+      apiData.totalItems+=itemLength;
+      //mixed api and db data
+      const mixedCameras = dbData.concat(apiData.cameras);
+
+      const mixedResult = {
+        totalItems: apiData.totalItems,
+        totalPages: apiData.totalPages,
+        currentPage: apiData.currentPage,
+        cameras: mixedCameras,
+      };
+      const result = page == 1 ? mixedResult : apiData;
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  },
+  getAllCamerasBySourceId: async (sourceId, page) => {
+    try {
+      const apiData = await cameraApiModel.getAllApiCamerasBySourceId(sourceId, page);
+      const dbData = await cameraDbModel.getAllDbCamerasBySourceId(sourceId);
+
+      //camera numbers in the db
+      const itemLength = dbData.length;
+      apiData.totalItems+=itemLength;
+      //mixed api and db data
+      const mixedCameras = dbData.concat(apiData.cameras);
+
+      const mixedResult = {
+        totalItems: apiData.totalItems,
+        totalPages: apiData.totalPages,
+        currentPage: apiData.currentPage,
+        cameras: mixedCameras,
+      };
+      const result = page == 1 ? mixedResult : apiData;
+      return result;
     } catch (error) {
       throw error;
     }

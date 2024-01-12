@@ -23,12 +23,12 @@ exports.getAllDbCameras = async (req, res) => {
 };
 
 //get all camera from db by id
-exports.getAllDbCamerasById = async (req, res) => {
+exports.getAllDbCamerasBySourceId = async (req, res) => {
   console.log("EN EL CONTROLADOR DE CAMARAS: PETICION DE OBTENER USUARIOS RECIBIDA");
       try {
         console.log("EN EL CONTROLADOR DE USUARIOS: PETICION DE OBTENER USUARIOS RECIBIDA");
-        const id = String(req.params.id);
-        const data = await cameraDbModel.getAllDbCamerasById(id);
+        const id = String(req.params.sourceId);
+        const data = await cameraDbModel.getAllDbCamerasBySourceId(id);
         res.json(data);
       } catch (error) {
         res.status(500).json({ error: 'Internal Server Error' });
@@ -89,11 +89,20 @@ exports.getAllApiCamerasBySourceId = async (req, res) => {
 
 exports.getAllCameras = async (req, res2) => {
   try {
-    console.log("EN EL CONTROLADOR DE USUARIOS: PETICION DE OBTENER USUARIOS RECIBIDA");
-    const resultadosCombinados = await camaraFullModel.getAllCameras();
+    const page = req.params.page;
+    const resultadosCombinados = await camaraFullModel.getAllCameras(page);
     res2.json(resultadosCombinados);
   } catch (error) {
     res2.status(500).json({ error: 'Internal Server Error' });
   }
 };
 
+exports.getAllCamerasByLocation = async (req, res2) => {
+  try {
+    const {latitude, longitude, radius, page} = req.params;
+    const resultadosCombinados = await camaraFullModel.getAllCamerasByLocation(latitude, longitude, radius, page);
+    res2.json(resultadosCombinados);
+  } catch (error) {
+    res2.status(500).json({ error: 'Internal Server Error' });
+  }
+};
