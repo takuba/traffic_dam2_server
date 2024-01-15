@@ -7,7 +7,7 @@ const connection = mysql.createConnection(dbConfig);
 const cameraDbModel = {
   getAllDbCameras: async () => {
     try {
-      const query = 'SELECT cameraId, cameraName, urlImage, latitude, longitude, sourceId FROM camaras';
+      const query = 'SELECT cameraId, cameraName, urlImage, latitude, longitude, sourceId FROM cameras';
       const [results] = await connection.promise().query(query);
       return results;
     } catch (error) {
@@ -16,7 +16,7 @@ const cameraDbModel = {
   }, 
   getAllDbCamerasBySourceId: async (id) => {
     try {
-      const query = 'SELECT cameraId, cameraName, urlImage, latitude, longitude, sourceId FROM camaras WHERE sourceId = ?';
+      const query = 'SELECT cameraId, cameraName, urlImage, latitude, longitude, sourceId FROM cameras WHERE sourceId = ?';
       const [results] = await connection.promise().query(query, [id]);
       return results;
     } catch (error) {
@@ -25,7 +25,7 @@ const cameraDbModel = {
   },
   getAllDbCamerasByLocation: async (latitude,longitude) => {
     try {
-      const query = 'SELECT cameraId, cameraName, urlImage, latitude, longitude, sourceId FROM camaras WHERE latitude = ? AND longitude = ?';
+      const query = 'SELECT cameraId, cameraName, urlImage, latitude, longitude, sourceId FROM cameras WHERE latitude = ? AND longitude = ?';
       const [results] = await connection.promise().query(query, [latitude,longitude]);
       return results;
     } catch (error) {
@@ -142,7 +142,7 @@ const camaraFullModel = {
     try {
       const apiData = await cameraApiModel.getAllApiCamerasBySourceId(sourceId, page);
       const dbData = await cameraDbModel.getAllDbCamerasBySourceId(sourceId);
-
+      console.log(apiData.totalItems);
       //camera numbers in the db
       const itemLength = dbData.length;
       apiData.totalItems+=itemLength;
@@ -161,6 +161,28 @@ const camaraFullModel = {
       throw error;
     }
   },
+  addNewCamera: async(cameraId, sourceId, cameraName, urlImage, latitude, longitude) => {
+    try {
+      const query = 'INSERT INTO cameras ( cameraId, sourceId, cameraName, urlImage, latitude, longitude) VALUES ( ?, ?, ?, ?, ?, ?)';
+      const [results] = await connection.promise().query(query, [cameraId, sourceId, cameraName, urlImage, latitude, longitude]);
+      return results;
+    } catch (error) {
+      console.log("error in addNewIncidence ", error);
+      throw error;
+    }
+
+  },
+  updateCamera : async(updatedCamera, cameraId) => {
+    try {
+      const query = 'UPDATE cameras SET ? WHERE cameraId = ?';
+      const [results] = await connection.promise().query(query, [updatedCamera, cameraId]);
+      return results;
+    } catch (error) {
+      console.log("error in addNewIncidence ", error);
+      throw error;
+    }
+
+  }
 };
 
 module.exports = {

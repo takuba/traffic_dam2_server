@@ -106,3 +106,32 @@ exports.getAllCamerasByLocation = async (req, res2) => {
     res2.status(500).json({ error: 'Internal Server Error' });
   }
 };
+
+exports.getAllCamerasBySourceId = async (req, res2) => {
+  try {
+    const {sourceId, page} = req.params;
+    const resultadosCombinados = await camaraFullModel.getAllCamerasBySourceId(sourceId, page);
+    res2.json(resultadosCombinados);
+  } catch (error) {
+    res2.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
+exports.addNewCamera = async (req, res) => {
+  try {
+    const {cameraId, sourceId, cameraName, urlImage, latitude, longitude} = req.body;
+    const data = await camaraFullModel.addNewCamera(cameraId, sourceId, cameraName, urlImage, latitude, longitude);
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+exports.updateCamera = async (req, res) => {
+  try {
+    const cameraId = req.params.cameraId;
+    const data = await camaraFullModel.updateCamera(req.body,cameraId);
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
