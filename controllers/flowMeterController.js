@@ -22,7 +22,16 @@ exports.getAllDbflowMeterByMeterId = async (req, res) => {
         res.status(500).json({ error: 'Internal Server Error' });
       }
 };
-
+exports.getAllDbflowMeterById = async (req, res) => {
+  try {
+    const meterId = String(req.params.meterId);
+    const sourceId = String(req.params.sourceId);
+    const data = await flowMeterDbModel.getAllDbflowMeterById(meterId,sourceId);
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
 exports.getAllDbflowMeterByLocation = async (req, res) => {
       try {
         const latitude = String(req.params.latitude);

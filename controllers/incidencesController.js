@@ -22,6 +22,16 @@ exports.getAllDbIncidencesByYear = async (req, res) => {
         res.status(500).json({ error: 'Internal Server Error' });
       }
 };
+exports.getAllDbIncidencesById = async (req, res) => {
+  try {
+    const incidenceId = req.params.incidenceId;
+    const sourceId = req.params.sourceId;
+    const data = await incidencesDbModel.getAllDbIncidencesById(incidenceId,sourceId);
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
 
 exports.getAllDbIncidencesByLocation = async (req, res) => {
   try {
@@ -47,7 +57,17 @@ exports.getAllApiIncidences = async (req, res) => {
       res.status(500).json({ error: 'Internal Server Error' });
     }
   };
+  exports.getAllApiIncidencesById = async (req, res) => {
+    try {
+      const incidenceId = req.params.incidenceId;
+      const sourceId = req.params.sourceId;
+      const data = await incidencesApiModel.getAllApiIncidencesById(incidenceId,sourceId);
+      res.json(data);
+    } catch (error) {
+      res.status(500).json({ error: 'Internal Server Error' });
 
+    }
+  }
   exports.getAllApiIncidencesByLocation = async (req, res) => {
     try {
       const year = req.params.year;
@@ -109,7 +129,16 @@ exports.getAllIncidencesByLocation = async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 };
-
+exports.getAllIncidencesById = async (req, res) => {
+  try {
+    const incidenceId = req.params.incidenceId;
+    const sourceId = req.params.sourceId;
+    const data = await incidencesFullModel.getAllIncidencesById(incidenceId,sourceId);
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
 exports.addNewIncidence = async (req, res) => {
   try {
     const {incidenceId, sourceId, incidenceType, autonomousRegion, province, cause, startDate,	latitude,	longitude, incidenceLevel, direction} = req.body;
@@ -130,3 +159,4 @@ exports.updateIncidence = async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 };
+

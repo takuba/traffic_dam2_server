@@ -2,7 +2,11 @@ const express = require('express');
 const router = express.Router();
 const { cameraDbModel, cameraApiModel, camaraFullModel, cameraDbMOdelById }  = require('../models/cameraModel');
 const jwt = require('jsonwebtoken');
-
+const utm = require('utm');
+function utmToDecimalDegrees(easting, northing, zoneNumber, northernHemisphere) {
+  const result = utm.toLatLon(easting, northing, zoneNumber, northernHemisphere);
+  return { latitude: result.latitude, longitude: result.longitude };
+}
 // Función para generar un token JWT
 function generateToken(user) {
     const secretKey = 'tu_clave_secreta';
@@ -12,6 +16,7 @@ function generateToken(user) {
 
 //get all cameras from db
 exports.getAllDbCameras = async (req, res) => {
+  
     console.log("EN EL CONTROLADOR DE CAMARAS: PETICION DE OBTENER USUARIOS RECIBIDA");
         try {
           console.log("EN EL CONTROLADOR DE USUARIOS: PETICION DE OBTENER USUARIOS RECIBIDA");
@@ -24,11 +29,10 @@ exports.getAllDbCameras = async (req, res) => {
 
 //get all camera from db by id
 exports.getAllDbCamerasBySourceId = async (req, res) => {
-  console.log("EN EL CONTROLADOR DE CAMARAS: PETICION DE OBTENER USUARIOS RECIBIDA");
       try {
-        console.log("EN EL CONTROLADOR DE USUARIOS: PETICION DE OBTENER USUARIOS RECIBIDA");
-        const id = String(req.params.sourceId);
-        const data = await cameraDbModel.getAllDbCamerasBySourceId(id);
+        const cameraId = String(req.params.cameraId);
+        const sourceId = String(req.params.sourceId);
+        const data = await cameraDbModel.getAllDbCamerasBySourceId(cameraId,sourceId);
         res.json(data);
       } catch (error) {
         res.status(500).json({ error: 'Internal Server Error' });
@@ -76,11 +80,10 @@ exports.getAllApiCamerasByLocation = async (req, res) => {
 };
 
 exports.getAllApiCamerasBySourceId = async (req, res) => {
-  console.log("apilocation");
       try {
+        const cameraId = req.params.cameraId;
         const sourceId = req.params.sourceId;
-        const page = req.params.page;
-        const data = await cameraApiModel.getAllApiCamerasBySourceId(sourceId,page);
+        const data = await cameraApiModel.getAllApiCamerasBySourceId(cameraId,sourceId);
         res.json(data);
       } catch (error) {
         res.status(500).json({ error: 'Internal Server Error' });
@@ -109,8 +112,8 @@ exports.getAllCamerasByLocation = async (req, res2) => {
 
 exports.getAllCamerasBySourceId = async (req, res2) => {
   try {
-    const {sourceId, page} = req.params;
-    const resultadosCombinados = await camaraFullModel.getAllCamerasBySourceId(sourceId, page);
+    const {cameraId,sourceId} = req.params;
+    const resultadosCombinados = await camaraFullModel.getAllCamerasBySourceId(cameraId,sourceId);
     res2.json(resultadosCombinados);
   } catch (error) {
     res2.status(500).json({ error: 'Internal Server Error' });

@@ -1,11 +1,8 @@
-// index.js
-
 const express = require('express');
 const app = express();
 const router = require ('./routes/routes')
 
-
-// Configurar el puerto
+//Port config
 const PORT = process.env.PORT || 3000;
 app.use (express.urlencoded({ extended: false}));
 app.use (express.json());
@@ -16,7 +13,7 @@ app.use(function(req, res, next) {
   next();
 })
 app.use(router);
-// Iniciar el servidor
+// start server
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });

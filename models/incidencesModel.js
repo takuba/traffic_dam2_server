@@ -14,6 +14,16 @@ const incidencesDbModel = {
       throw error;
     }
   },
+  getAllDbIncidencesById: async (incidenceId, sourceId) => {
+    try {
+      const query = 'SELECT * FROM incidences WHERE incidenceId = ? AND sourceId = ?';
+      const [results] = await connection.promise().query(query, [incidenceId, sourceId]);
+      return results;
+    } catch (error) {
+      console.log("error in getAllApiIncidencesByLocation: ",error);
+      throw error;
+    }
+  },
   getAllDbIncidencesByYear: async (year) => {
     try {
       const query = 'SELECT incidenceId, sourceId, incidenceType, autonomousRegion, province, cause, startDate,	latitude,	longitude, incidenceLevel, direction FROM incidences WHERE YEAR(startDate) = ?';
@@ -51,6 +61,15 @@ const incidencesApiModel = {
           };
     
           return mixedResults;
+        } catch (error) {
+          throw error;
+        }
+      },
+      getAllApiIncidencesById: async (id,sourceId) => {
+        try {
+          const response = await fetch(`https://api.euskadi.eus/traffic/v1.0/incidences/${id}/${sourceId}`);
+          const apiData = await response.json();    
+          return apiData;
         } catch (error) {
           throw error;
         }
@@ -115,6 +134,30 @@ const incidencesFullModel = {
     } catch (error) {
       throw error;
     }
+  },
+  getAllIncidencesById: async (id, sourceId) => {
+    let apiData, dbData;
+    try {
+      apiData = await incidencesApiModel.getAllApiIncidencesById(id, sourceId);
+    } catch (apiError) {
+      console.error("Error in API call:", apiError);
+    }
+  
+    try {
+      dbData = await incidencesDbModel.getAllDbIncidencesById(id, sourceId);
+    } catch (dbError) {
+      console.error("Error in DB call:", dbError);
+    }
+
+    const mixedResultDb = {
+      incidences: dbData.concat(apiData),
+    };
+    const mixedResultDb2 = {
+      incidences: dbData
+    };
+    const mixedCameras = apiData ? mixedResultDb : mixedResultDb2;
+  
+    return mixedCameras;
   },
   getAllIncidencesByYear: async (year, page) => {
     try {

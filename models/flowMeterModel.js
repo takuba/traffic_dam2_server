@@ -6,7 +6,7 @@ const connection = mysql.createConnection(dbConfig);
 const flowMeterDbModel = {
     getAllDbflowMeter: async () => {
       try {
-        const query = 'SELECT meterId, provinceId, municipalityId, description, latitude, longitude, geometry FROM flowMeter';
+        const query = 'SELECT meterId, provinceId,sourceId, municipalityId, description, latitude, longitude, geometry FROM flowMeter';
         const [results] = await connection.promise().query(query);
         
         const newArray = results.map(objeto => ({
@@ -19,6 +19,7 @@ const flowMeterDbModel = {
           "type": "Feature",
           "properties": {
             "meterId": objeto.meterId,
+            "sourceId": objeto.sourceId,
             "description": objeto.description,
             "provinceId": objeto.provinceId,
             "municipalityId": objeto.municipalityId,
@@ -39,8 +40,17 @@ const flowMeterDbModel = {
     }, 
     getAllDbflowMeterByMeterId: async (meterId) => {
       try {
-        const query = 'SELECT meterId, provinceId, municipalityId, description, latitude, longitude, geometry  FROM flowMeter WHERE meterId = ?';
+        const query = 'SELECT meterId, provinceId,sourceId, municipalityId, description, latitude, longitude, geometry  FROM flowMeter WHERE meterId = ?';
         const [results] = await connection.promise().query(query, [meterId]);
+        return results;
+      } catch (error) {
+        throw error;
+      }
+    },
+    getAllDbflowMeterById: async (meterId,sourceId) => {
+      try {
+        const query = 'SELECT meterId, provinceId,sourceId, municipalityId, description, latitude, longitude, geometry FROM flowMeter WHERE meterId = ? AND sourceId = ?';
+        const [results] = await connection.promise().query(query, [meterId,sourceId]);
         return results;
       } catch (error) {
         throw error;
@@ -48,7 +58,7 @@ const flowMeterDbModel = {
     },
     getAllDbflowMeterByLocation: async (latitude,longitude) => {
       try {
-        const query = 'SELECT meterId, provinceId, municipalityId, description, latitude, longitude FROM flowMeter WHERE latitude = ? AND longitude = ?';
+        const query = 'SELECT meterId, provinceId,sourceId, municipalityId, description, latitude, longitude FROM flowMeter WHERE latitude = ? AND longitude = ?';
         const [results] = await connection.promise().query(query, [latitude,longitude]);
         return results;
       } catch (error) {
@@ -64,7 +74,7 @@ const flowMeterDbModel = {
         const apiData = await response.json();
         const filterData = {
           ...apiData,
-          features: apiData.features.map(({ geometry, properties: { municipality, province,system,sourceId,meterCode, ...restProperties }, ...rest }) => ({
+          features: apiData.features.map(({ geometry, properties: { municipality, province,system,meterCode, ...restProperties }, ...rest }) => ({
             ...rest,
             properties: {
               ...restProperties,
@@ -83,7 +93,7 @@ const flowMeterDbModel = {
         const apiData = await response.json();
         const filterData = {
           ...apiData,
-          features: apiData.features.map(({ geometry, properties: { municipality, province,system,sourceId,meterCode, ...restProperties }, ...rest }) => ({
+          features: apiData.features.map(({ geometry, properties: { municipality, province,system,meterCode, ...restProperties }, ...rest }) => ({
             ...rest,
             properties: {
               ...restProperties,
@@ -109,7 +119,6 @@ const flowMeterDbModel = {
             municipality: undefined,
             province: undefined,
             meterCode:undefined,
-            sourceId:undefined
           },
         };
         return filteredData;
@@ -125,12 +134,12 @@ const flowMeterDbModel = {
       try {
         const apiData = await flowMeterApiModel.getAllApiflowMeters(page);
         const dbData = await flowMeterDbModel.getAllDbflowMeter();
-  
+        console.log(dbData);
         //camera numbers in the db
         const itemLength = dbData.length;
         apiData.totalItems+=itemLength;
         //mixed api and db data
-        const mixedCameras = dbData.concat(apiData);
+        const mixedCameras = dbData.concat(apiData.features);
   
         const mixedResult = {
           totalItems: apiData.totalItems,
@@ -150,7 +159,7 @@ const flowMeterDbModel = {
         const apiData = await flowMeterApiModel.getAllApiflowMetersByMeterId(meterId);
         console.log(apiData);
         
-        return apiData;
+        return {features:[apiData]};
       } catch (error) {
         console.log("error en la api");
         //throw "NOT FOUND";
@@ -167,6 +176,7 @@ const flowMeterDbModel = {
           "properties": {
             "meterId": objeto.meterId,
             "description": objeto.description,
+            "sourceId": objeto.sourceId,
             "provinceId": objeto.provinceId,
             "municipalityId": objeto.municipalityId,
             "latitude": objeto.latitude,
@@ -177,7 +187,7 @@ const flowMeterDbModel = {
             "coordinates": objeto.geometry
           }
         }));
-        const combinedObject = Object.assign({}, ...arrayTransformado);
+        const combinedObject = {features:[Object.assign({}, ...arrayTransformado)]};
         return combinedObject;
       } catch (error) {
         console.log("Error in getAllApiflowMetersByMeterId: ", error);
@@ -189,14 +199,9 @@ const flowMeterDbModel = {
     addNewFlowMeter: async(meterId, provinceId, municipalityId, description, latitude, longitude, geometry) => {
       try {
         console.log(geometry);
-        const numeroAleatorio = Math.floor(Math.random() * (999 - 100 + 1)) + 100;
-      
-        // Obtener una letra aleatoria (por ejemplo, de la 'A' a la 'Z')
-        const letraAleatoria = String.fromCharCode(65 + Math.floor(Math.random() * 26));
-    
-        // Concatenar el número y la letra
-        const codigoGenerado = numeroAleatorio + letraAleatoria;
-        meterId= codigoGenerado;
+        const numeroAleatorio = Math.floor(Math.random() * (90000) + 10000);
+
+        meterId= numeroAleatorio;
         const query = 'INSERT INTO flowMeter ( meterId, provinceId, municipalityId, description, latitude, longitude, geometry) VALUES ( ?, ?, ?, ?, ?, ?, ST_GeomFromGeoJSON(?))';
         const [results] = await connection.promise().query(query, [meterId, provinceId, municipalityId, description, latitude, longitude, JSON.stringify(geometry)]);
         console.log(results);
