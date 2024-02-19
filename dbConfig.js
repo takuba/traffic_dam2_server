@@ -1,9 +1,8 @@
-// dbConfig.js
+   const Sequelize = require('sequelize');
 
-module.exports = {
+  const sequelize = new Sequelize('trafico', 'root', 'fer12jose', {
     host: 'localhost',
-    user: 'root',
-    password: 'fer12jose',
-    database: 'trafico',
-  };
+    dialect: 'mysql',
+  });
   
+  module.exports = sequelize;

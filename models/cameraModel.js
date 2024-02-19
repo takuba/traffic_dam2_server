@@ -1,42 +1,14 @@
-const mysql = require('mysql2');
-const dbConfig = require('../dbConfig');
 const utm = require('utm');
+const Camera = require('../models/Camera');
 
-const connection = mysql.createConnection(dbConfig);
-
-//CameraModel with diferents filters
+//Camera database model
 const cameraDbModel = {
   getAllDbCameras: async () => {
     try {
-      const query = 'SELECT cameraId, cameraName, urlImage, latitude, longitude, sourceId FROM cameras';
-      const [results] = await connection.promise().query(query);
+      const results = await Camera.findAll();
       results.forEach(it => {
-        switch (it.sourceId) {
-          case "1":
-            it.sourceName = 'Gobierno País Vasco';
-            break;
-          case "2":
-            it.sourceName = 'Diputación Foral de Bizkaia';
-            break;
-          case "3":
-            it.sourceName = 'Diputación Foral de Álava';
-            break;
-          case "4":
-            it.sourceName = 'Diputación Foral de Gipuzkoa';
-            break;
-          case "5":
-            it.sourceName = 'Ayuntamiento Bilbao';
-            break;
-          case "6":
-            it.sourceName = 'Ayuntamiento Vitoria-Gasteiz';
-            break;
-          case "7":
-            it.sourceName = 'Ayuntamiento de Donostia-San Sebastián';
-            break;
-          default:
-            it.sourceName = item.sourceId;
-        }
-      });
+      }
+      );
       return results;
     } catch (error) {
       throw error;
@@ -44,18 +16,14 @@ const cameraDbModel = {
   }, 
   getAllDbCamerasBySourceId: async (cameraId,sourceId) => {
     try {
-      const query = 'SELECT cameraId, cameraName, urlImage, latitude, longitude, sourceId FROM cameras WHERE cameraId = ? AND sourceId = ?';
-      const [results] = await connection.promise().query(query, [cameraId,sourceId]);
-      return results;
-    } catch (error) {
-      throw error;
-    }
-  },
-  getAllDbCamerasByLocation: async (latitude,longitude) => {
-    try {
-      const query = 'SELECT cameraId, cameraName, urlImage, latitude, longitude, sourceId FROM cameras WHERE latitude = ? AND longitude = ?';
-      const [results] = await connection.promise().query(query, [latitude,longitude]);
-      return results;
+      const cameras = await Camera.findAll({
+        attributes: ['cameraId', 'cameraName', 'urlImage', 'latitude', 'longitude', 'sourceId','sourceName'],
+        where: {
+          cameraId: cameraId,
+          sourceId: sourceId
+        }
+      });
+      return cameras;
     } catch (error) {
       throw error;
     }
@@ -68,31 +36,19 @@ const cameraApiModel = {
     try {
       const response = await fetch(`https://api.euskadi.eus/traffic/v1.0/cameras?_page=${page}`);
       const apiData = await response.json();
+      //change lat and lon to decimal
+      setTheLocationUtmToDecimal(apiData.cameras)
+      //delete unnecessary atributes from the result 
       const filterData = apiData.cameras.map(({ road, kilometer, address, ...rest }) => rest);
-
+      //join the result with the filtered data
       const mixedResults = {
         totalItems: apiData.totalItems,
         totalPages: apiData.totalPages,
         currentPage: apiData.currentPage,
         cameras: filterData,
       };
-
-      return mixedResults;
-    } catch (error) {
-      throw error;
-    }
-  },
-  getAllApiCamerasByLocation: async (latitude, longitude, radius, page) => {
-    try {
-      const response = await fetch(`https://api.euskadi.eus/traffic/v1.0/cameras/byLocation/${latitude}/${longitude}/${radius}?_page=${page}`);
-      const apiData = await response.json();
-      const filterData = apiData.cameras.map(({ road, kilometer, address, ...rest }) => rest);
-      const mixedResults = {
-        totalItems: apiData.totalItems,
-        totalPages: apiData.totalPages,
-        currentPage: apiData.currentPage,
-        cameras: filterData,
-      };
+      //add new atribute to the camera
+      getSourceNameByCameras(mixedResults.cameras);
 
       return mixedResults;
     } catch (error) {
@@ -103,6 +59,11 @@ const cameraApiModel = {
     try {
       const response = await fetch(`https://api.euskadi.eus/traffic/v1.0/cameras/${cameraId}/${sourceId}`);
       const apiData = await response.json();
+      delete apiData.road;
+      delete apiData.kilometer;
+      delete apiData.address;
+      setTheLocationUtmToDecimal([apiData])
+      getSourceNameByCameras([apiData]);
       return apiData;
     } catch (error) {
       throw error;
@@ -118,78 +79,12 @@ const camaraFullModel = {
       const apiData = await cameraApiModel.getAllApiCameras(page);
       const dbData = await cameraDbModel.getAllDbCameras();
       // console.log(dbData);
-      const zoneNumber = 30;
-      const northernHemisphere = true;
-      const hemisphere = 'N';
-      apiData.cameras.forEach((element) => {
-        //console.log(element.latitude);
-        //console.log(element.longitude);
-        switch (element.sourceId) {
-          case "1":
-            element.sourceName = 'Gobierno País Vasco';
-            break;
-          case "2":
-            element.sourceName = 'Diputación Foral de Bizkaia';
-            break;
-          case "3":
-            element.sourceName = 'Diputación Foral de Álava';
-            break;
-          case "4":
-            element.sourceName = 'Diputación Foral de Gipuzkoa';
-            break;
-          case "5":
-            element.sourceName = 'Ayuntamiento Bilbao';
-            break;
-          case "6":
-            element.sourceName = 'Ayuntamiento Vitoria-Gasteiz';
-            break;
-          case "7":
-            element.sourceName = 'Ayuntamiento de Donostia-San Sebastián';
-            break;
-          default:
-            element.sourceName = item.sourceId;
-        }
-        const decimalDegrees = utmToDecimalDegrees(element.longitude,element.latitude,zoneNumber,hemisphere);
-        console.log(decimalDegrees.longitude);
-        element.latitude = decimalDegrees.latitude;
-        element.longitude = decimalDegrees.longitude;
-        
-      });
       //camera numbers in the db
       const itemLength = dbData.length;
       apiData.totalItems+=itemLength;
 
       //mixed api and db data
       const mixedCameras = dbData.concat(apiData.cameras);
-
-      const mixedResult = {
-        totalItems: apiData.totalItems,
-        totalPages: apiData.totalPages,
-        currentPage: apiData.currentPage,
-        cameras: mixedCameras,
-      };
-      //console.log(apiData.cameras);
-
-
-      //console.log(apiData);
-
-      const result = page == 1 ? mixedResult : apiData;
-      return result;
-    } catch (error) {
-      throw error;
-    }
-  },
-  getAllCamerasByLocation: async (latitude, longitude, radius, page) => {
-    try {
-      const apiData = await cameraApiModel.getAllApiCamerasByLocation(latitude, longitude, radius, page);
-      const dbData = await cameraDbModel.getAllDbCamerasByLocation(latitude,longitude);
-
-      //camera numbers in the db
-      const itemLength = dbData.length;
-      apiData.totalItems+=itemLength;
-      //mixed api and db data
-      const mixedCameras = dbData.concat(apiData.cameras);
-
       const mixedResult = {
         totalItems: apiData.totalItems,
         totalPages: apiData.totalPages,
@@ -199,7 +94,6 @@ const camaraFullModel = {
       const result = page == 1 ? mixedResult : apiData;
       return result;
     } catch (error) {
-      console.log(error);
       throw error;
     }
   },
@@ -207,16 +101,7 @@ const camaraFullModel = {
     try {
       const apiData = await cameraApiModel.getAllApiCamerasBySourceId(cameraId, sourceId);
       const dbData = await cameraDbModel.getAllDbCamerasBySourceId(cameraId,sourceId);
-
-      const zoneNumber = 30;
-      const hemisphere = 'N';
       const mixedCameras = dbData.concat(apiData);
-      mixedCameras.forEach((element) => {
-          const decimalDegrees = utmToDecimalDegrees(element.longitude,element.latitude,zoneNumber,hemisphere);
-          element.latitude = decimalDegrees.latitude;
-          element.longitude = decimalDegrees.longitude;
-
-      });
       const mixedResult = {
         cameras: mixedCameras
       };
@@ -228,9 +113,17 @@ const camaraFullModel = {
   },
   addNewCamera: async(cameraId, sourceId, cameraName, urlImage, latitude, longitude) => {
     try {
-      const query = 'INSERT INTO cameras ( cameraId, sourceId, cameraName, urlImage, latitude, longitude) VALUES ( ?, ?, ?, ?, ?, ?)';
-      const [results] = await connection.promise().query(query, [cameraId, sourceId, cameraName, urlImage, latitude, longitude]);
-      return results;
+      const newCamera = await Camera.create({
+        cameraId: cameraId,
+        sourceId: sourceId,
+        cameraName: cameraName,
+        urlImage: urlImage,
+        latitude: latitude,
+        longitude: longitude,
+        sourceName:null
+      });
+
+      return newCamera;
     } catch (error) {
       console.log("error in addNewIncidence ", error);
       throw error;
@@ -239,27 +132,76 @@ const camaraFullModel = {
   },
   updateCamera : async(updatedCamera, cameraId) => {
     try {
-      const query = 'UPDATE cameras SET ? WHERE cameraId = ?';
-      const [results] = await connection.promise().query(query, [updatedCamera, cameraId]);
-      return results;
+      // Utiliza el método update para actualizar el registro
+      const [numberOfUpdatedRows, updatedRows] = await Camera.update(updatedCamera, {
+        where: {
+          cameraId: cameraId
+        }
+      });
+      if (numberOfUpdatedRows > 0) {
+        return { numberOfUpdatedRows, updatedRows };
+      } else {
+        throw new Error('No se encontró ninguna cámara con el ID proporcionado.');
+      }
     } catch (error) {
-      console.log("error in addNewIncidence ", error);
+      // Maneja cualquier error
+      console.log("error in updateCamera ", error);
       throw error;
     }
 
   }
 };
+
+
+//raw function to transforma utm to decimal
 function utmToDecimalDegrees(easting, northing, zoneNumber, hemisphere) {
   try {
     const result = utm.toLatLon(easting, northing, zoneNumber, hemisphere);
-   // console.log(result.longitude);
-    //console.log(result.latitude);
     return { longitude: String(result.longitude), latitude: String(result.latitude) };
   } catch (error) {
-    //console.error(`Error en la transformación UTM a decimal: ${error.message}`);
-    // Si la transformación falla, devolver las coordenadas originales
     return { longitude: easting, latitude: northing };
   }
+}
+//function to transform location properties from a array
+const setTheLocationUtmToDecimal=(array)=>{
+  array.forEach((element) => {
+    const decimalDegrees = utmToDecimalDegrees(element.longitude,element.latitude,30,'N');
+    console.log(decimalDegrees.longitude);
+    element.latitude = decimalDegrees.latitude;
+    element.longitude = decimalDegrees.longitude;
+    
+  });
+}
+
+//function that add new atribute to the array
+const getSourceNameByCameras=(array)=>{
+  array.forEach(element => {
+    switch (element.sourceId) {
+      case "1":
+        element.sourceName = 'Gobierno País Vasco';
+        break;
+      case "2":
+        element.sourceName = 'Diputación Foral de Bizkaia';
+        break;
+      case "3":
+        element.sourceName = 'Diputación Foral de Álava';
+        break;
+      case "4":
+        element.sourceName = 'Diputación Foral de Gipuzkoa';
+        break;
+      case "5":
+        element.sourceName = 'Ayuntamiento Bilbao';
+        break;
+      case "6":
+        element.sourceName = 'Ayuntamiento Vitoria-Gasteiz';
+        break;
+      case "7":
+        element.sourceName = 'Ayuntamiento de Donostia-San Sebastián';
+        break;
+      default:
+        element.sourceName = item.sourceId;
+    }
+  });
 }
 module.exports = {
   cameraDbModel,
